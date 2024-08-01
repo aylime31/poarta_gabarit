@@ -1,12 +1,15 @@
 import open3d as o3d
 import numpy as np
 
-# Crează un set de puncte simplu folosind NumPy
-points = np.random.rand(9000, 3)
+a = o3d.core.Tensor([[1, 2, 3], [4, 5, 6]])
+print("Created from list:\n{}".format(a))
 
-# Transformă setul de puncte într-un PointCloud
-pcd = o3d.geometry.PointCloud()
-pcd.points = o3d.utility.Vector3dVector(points)
+b = o3d.core.Tensor(np.array([0, 1, 2]))
+print("\nCreated from numpy array:\n{}".format(b))
 
-# Afișează PointCloud-ul
-o3d.visualization.draw_geometries([pcd])
+a_float = o3d.core.Tensor([0.0, 1.0, 2.0])
+print("\nDefault dtype and device:\n{}".format(a_float))
+
+a_cpu = o3d.cpu.Tensor([0, 1, 2])
+a_gpu = a_cpu.cuda(0)
+print(a_gpu)
