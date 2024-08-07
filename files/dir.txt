@@ -1,0 +1,17 @@
+ Volume in drive E is Data
+ Volume Serial Number is 82C2-7DAC
+
+ Directory of E:\work\cf42\07_vestra\01_comark\work\02_viewtest\files
+
+04/16/2024  06:34 PM    <DIR>          .
+04/16/2024  06:34 PM    <DIR>          ..
+11/20/2021  10:37 AM           464,696 553-truck_open_trailer-00021.pcd
+11/20/2021  10:37 AM         1,733,307 604-semitruck_tanker-00148.pcd
+01/31/2024  03:26 PM            40,934 transit_1 (31) - Copy.pcd
+07/30/2022  08:45 AM            39,746 transit_20220730-084502_l1_c501_id3.pcd
+07/30/2022  08:51 AM            42,957 transit_20220730-085127_l1_c502_id5.pcd
+07/18/2022  04:59 PM            56,161 transit_4.pcd
+07/17/2022  10:24 PM            48,033 transit_8.pcd
+07/18/2022  06:57 PM            48,960 transit_9.pcd
+               9 File(s)      2,474,794 bytes
+               2 Dir(s)  120,721,330,176 bytes free
