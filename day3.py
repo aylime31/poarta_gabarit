@@ -90,7 +90,7 @@ def main():
     num_slices = 10
     axis = 1
     file_paths = processor.slice_point_cloud(num_slices, axis, output)
-
+#visualizare
     for file_path in file_paths:
         print(f"Felia din: {file_path}")
         pcd_slice = o3d.io.read_point_cloud(file_path)
