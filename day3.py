@@ -1,5 +1,4 @@
 import os.path
-
 import open3d as o3d
 import numpy as np
 
@@ -49,8 +48,7 @@ class PointCloudProcessor:
 
     def slice_point_cloud(self, num_slices, axis, output="slices"):
 
-        points = np.asarray(
-            self.pcd.points)  #extrage coordonatele x, y si z ale punctelor si le converteste intr-un array numpy pt a permite operatii
+        points = np.asarray(self.pcd.points)  #extrage coordonatele x, y si z ale punctelor si le converteste intr-un array numpy pt a permite operatii
         min_val = np.min(points[:, axis])  #valoarea minima
         max_val = np.max(points[:, axis])  #valoarea maxima
 
@@ -59,7 +57,13 @@ class PointCloudProcessor:
         os.makedirs(output, exist_ok=True)  #creeaza directorul pentru continutul fiecarei felii
         file_paths = []  #lista care stocheaza caile catre fisiere
 
+        slice_counter = 1
         for i in range(num_slices):
+
+            #excludem prima si ultima felie (pentru a elimina partea nesemnificativa)
+            if i == 0 or i == num_slices - 1:
+                continue
+
             start_val = min_val + i * slice_width  #valoarea de start a coordonatei pe axa pentru felia i
             end_val = start_val + slice_width
             mask = (points[:, axis] >= start_val) & (
@@ -73,6 +77,8 @@ class PointCloudProcessor:
             file_path = os.path.join(output, f"slice_{i + 1}.pcd")
             o3d.io.write_point_cloud(file_path, new_pcd)
             file_paths.append(file_path)
+
+            slice_counter += 1
 
         return file_paths
 
@@ -116,8 +122,8 @@ def main():
     processor.visualize_voxel_grid(voxel_size=0.05)
     processor.visualize()
 
-    num_slices = 10
-    axis = 1 #alegem axa Y pentru a felia norul de puncte
+    num_slices = 20
+    axis = 2 #alegem axa Z pentru a felia norul de puncte
     file_paths = processor.slice_point_cloud(num_slices, axis, output)
 
     slice_dim = processor.calculate_slice_dimensions(file_paths)
