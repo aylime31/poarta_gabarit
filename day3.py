@@ -176,9 +176,11 @@ def main():
 
     #filtram zgomotul:
     processor.filter_outliers(visualize=True)
+    print(f"Numarul de puncte dupa filter_outliers: {len(processor.pcd.points)}")
 
     processor.downsample_voxel(voxel_size=0.1)
     processor.normalize_and_color(processor.pcd)
+    print(f"Numarul de puncte dupa voxel: {len(processor.pcd.points)}")
 
     print('Displaying input point cloud: ')
     processor.visualize_voxel_grid(voxel_size=0.05)
