@@ -2,6 +2,7 @@ import os.path
 import open3d as o3d
 import numpy as np
 from matplotlib import pyplot as plt
+from sklearn.linear_model import RANSACRegressor
 
 
 class PointCloudProcessor:
@@ -84,9 +85,9 @@ class PointCloudProcessor:
         plt.figure(figsize=(12, 6))
         plt.subplot(1, 2, 1)
         plt.hist(mean_dists, bins=50, color='blue', alpha=0.7)
-        plt.title('Distribuția distanțelor medii')
+        plt.title('Distributia distantelor medii')
         plt.xlabel('Distanta medie')
-        plt.ylabel('Frecvența')
+        plt.ylabel('Frecventa')
 
         plt.subplot(1, 2, 2)
         plt.hist(std_devs, bins=50, color='red', alpha=0.7)
@@ -163,6 +164,39 @@ class PointCloudProcessor:
 
         return slice_dimensions
 
+    def detect_oversize (self, pcd_slice, threshold, axis):
+        #pcd_slice = felia de nor de puncte
+        #threshold = pragul
+
+        points = np.asarray(pcd_slice.points)
+
+        x = np.delete(points, axis, 1)
+        y = points[:, axis]
+
+        #cream modelul RANSAC
+        ransac = RANSACRegressor(min_samples=3, residual_threshold=threshold)
+        ransac.fit(x, y)
+
+        #calcul erori
+        errors = np.abs(ransac.predict(x) - y)
+
+        #identificare depasiri
+        inlier_mask = errors < threshold
+        outlier_mask = np.logical_not(inlier_mask)
+        oversize_indices= np.where(outlier_mask)[0]
+
+        return oversize_indices
+    def visualize_oversizes(self, pcd_slice, oversize_ind_width, oversize_ind_height):
+        color_pcd = o3d.geometry.PointCloud()
+        color_pcd.points = pcd_slice.points
+        colors = np.asarray(color_pcd.colors)
+
+        colors[oversize_ind_width] = [1, 0, 0] #rosu pentru depasiri de latime
+        colors[oversize_ind_height] = [0, 0, 1]  # albastru pentru depasiri de latime
+        color_pcd.colors = o3d.utility.Vector3dVector(colors)
+
+        o3d.visualization.draw_geometries([color_pcd])
+
 
 def main():
     pcd_name = "files/transit_4.pcd"
@@ -191,6 +225,9 @@ def main():
     num_slices = 20
     axis = 2 #alegem axa Z pentru a felia norul de puncte
     file_paths = processor.slice_point_cloud(num_slices, axis, output)
+    #pragul stabilit:
+    width_limit = 2.55
+    height_limit = 4.0
 
     slice_dim = processor.calculate_slice_dimensions(file_paths)
     for slice_idx, file_path in enumerate(file_paths):
@@ -203,6 +240,16 @@ def main():
         print(f"Width: {dimensions['width']:.2f}")
         print(f"Height: {dimensions['width']:.2f}")
         print(f"Depth: {dimensions['depth']:.2f}")
+
+        oversize_ind_width = processor.detect_oversize(pcd_slice, width_limit/2, axis = 0)
+        oversize_ind_height = processor.detect_oversize(pcd_slice, height_limit / 2, axis=2)
+
+        print(f"Vizualizare depasire width: {oversize_ind_width} and height {oversize_ind_height}")
+        processor.visualize_oversizes(pcd_slice, oversize_ind_width, oversize_ind_height)
+
+
+
+
 
 
 
