@@ -1,0 +1,8 @@
+Slice 2: width: 2.52, height: 19.12, depth: 0.36
+Slice 3: width: 0.14, height: 1.00, depth: 0.19
+Slice 4: width: 0.12, height: 0.94, depth: 0.01
+Slice 5: width: 0.13, height: 0.74, depth: 0.01
+Slice 6: width: 0.13, height: 0.74, depth: 0.01
+Slice 7: width: 0.14, height: 1.00, depth: 0.19
+Slice 8: width: 0.12, height: 0.78, depth: 0.01
+Slice 9: width: 0.13, height: 0.78, depth: 0.01

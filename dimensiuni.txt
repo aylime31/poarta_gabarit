@@ -1,0 +1,4 @@
+Felia din: slices\slice_2.pcd
+Slice 2: 
+Width: 4.10
+Height: 3.61
