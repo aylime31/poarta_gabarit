@@ -238,6 +238,6 @@ def main():
     output_director = "slices"
     analyze(input_director, output_director)
 
-
+#de facut: de stabilit niste praguri, de stabilit daca trebuie sa elimin prima si ultima felie, detectare manuala
 if __name__ == "__main__":
     main()
