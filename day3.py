@@ -212,6 +212,7 @@ def analyze(director, output_dir):
             height_limit = 1
 
             slice_dim = processor.calculate_slice_dimensions(file_paths)
+
             slices = [o3d.io.read_point_cloud(file_path) for file_path in file_paths]
 
             for slice_idx, file_path in enumerate(file_paths):
