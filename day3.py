@@ -192,6 +192,7 @@ def analyze(director, output_dir):
 
             processor.visualize()
 
+            #dimensiunile initiale:
             points_np = np.asarray(processor.pcd.points)
             x_min = points_np[:, 0].min()
             x_max = points_np[:, 0].max()
