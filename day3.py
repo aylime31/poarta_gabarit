@@ -72,7 +72,7 @@ class PointCloudProcessor:
             if std_dev > threshold:
                 removing.append(i)
 
-        #distributia distantelor pentru a ajusta pragurile
+        """  #distributia distantelor pentru a ajusta pragurile
         plt.figure(figsize=(12, 6))
         plt.subplot(1, 2, 1)
         plt.hist(mean_dists, bins=50, color='blue', alpha=0.7)
@@ -87,13 +87,13 @@ class PointCloudProcessor:
         plt.ylabel('Frecventa')
 
         plt.tight_layout()
-        plt.show()
+        plt.show() """
 
         without_rain_pcd = pcd.select_by_index(removing, invert=True)
         return without_rain_pcd
 
     def slice_point_cloud(self, num_slices, axis, output_dir):
-        points_np = np.asarray(self.pcd.points)
+        points_np = np.asarray(self.pcd.points, dtype=np.float64)
 
         min_val = points_np[:, axis].min()
         max_val = points_np[:, axis].max()
@@ -107,7 +107,7 @@ class PointCloudProcessor:
             upper_bound = lower_bound + slice_depth
 
             #filtram punctele care se află în intervalul [lower_bound, upper_bound] pe axa specificată
-            mask = (points_np[:, axis] >= lower_bound) & (points_np[:, axis] < upper_bound)
+            mask = (points_np[:, axis] >= lower_bound) & (points_np[:, axis] <= upper_bound)
             slice_points = points_np[mask]
 
             #cream un nou nor de puncte pentru felie
@@ -140,26 +140,55 @@ class PointCloudProcessor:
         return slice_dimensions
 
     def detect_oversize(self, slices, width_limit, height_limit):
+        total_height = 0
+
         all_points = np.asarray(self.pcd.points)
-        #toate punctele initiale sunt negre
         all_colors = np.zeros((len(all_points), 3))
 
-        for slice in slices:
+        for i, slice in enumerate(slices):
             slice_points = np.asarray(slice.points)
-            x_min, y_min, z_min = slice_points.min(axis=0)
-            x_max, y_max, z_max = slice_points.max(axis=0)
+            x_min = slice_points[:, 0].min()
+            x_max = slice_points[:, 0].max()
+            z_min = slice_points[:, 2].min()
+            z_max = slice_points[:, 2].max()
+
             width = x_max - x_min
             height = z_max - z_min
 
-            if width > width_limit or height > height_limit:
-                mask = ((all_points[:, 0] > x_min) & (all_points[:, 0] < x_max) & (all_points[:, 1] > y_min)
-                        & (all_points[:, 1] < y_max) & (all_points[:, 2] > z_min)
-                        & (all_points[:, 2] < z_max))
-                #punctele rosii sunt depasiri
-                all_colors[mask] = [1, 0, 0]
+            total_height += height
 
+            height_exceed = total_height > height_limit
+            width_exceed = width > width_limit
+
+            if height_exceed or width_exceed:
+                if height_exceed and width_exceed:
+                    #galben pentru depasirea ambelor limite
+                    print(f"\nDepasire detectata in felia {i + 1}:")
+                    print(f"  Width: {width:.2f}, Maximum width: {width_limit}")
+                    print(f"  Accumulated height: {total_height:.2f}, Maximum height: {height_limit}")
+                    color = [1, 1, 0]
+
+                elif width_exceed:
+                    #rosu pentru depasirea limitei de lațime
+                    print(f"Depasire detectata in felia {i + 1}:")
+                    print(f"  Width: {width:.2f}, Maximum width: {width_limit}")
+                    color = [1, 0, 0]
+                elif height_exceed:
+                    #verde pentru depașirea limitei de inaltime
+                    print(f"Depasire detectata in felia {i + 1}:")
+                    print(f"  Accumulated height: {total_height:.2f}, Maximum height: {height_limit}")
+                    color = [0, 1, 0]
+
+                for point in slice_points:
+                    idx = np.where(np.all(np.isclose(all_points, point), axis=1))[0]
+                    if idx.size > 0:
+                        all_colors[idx[0]] = color
+
+        # Setăm culorile pentru norul de puncte original
         self.pcd.colors = o3d.utility.Vector3dVector(all_colors)
-        o3d.visualization.draw_geometries([self.pcd])
+
+        # Vizualizăm rezultatul final
+        self.visualize()
 
 
 def analyze(director, output_dir):
@@ -176,7 +205,6 @@ def analyze(director, output_dir):
                 os.makedirs(file_output_dir)
 
             processor = PointCloudProcessor(file_path)
-            processor.visualize()
 
             print(f"Numarul de puncte initial: {len(processor.pcd.points)}")
             # eliminam picaturile de ploaie:
@@ -190,7 +218,7 @@ def analyze(director, output_dir):
             processor.downsample_voxel(voxel_size=0.05)
             print(f"Numarul de puncte dupa voxel: {len(processor.pcd.points)}\n")
 
-            processor.visualize()
+            #processor.visualize()
 
             #dimensiunile initiale:
             points_np = np.asarray(processor.pcd.points)
@@ -208,16 +236,15 @@ def analyze(director, output_dir):
             axis = 2
             file_paths = processor.slice_point_cloud(num_slices, axis, file_output_dir)
 
-            width_limit = 2.8
-            height_limit = 1
+            width_limit = 2.5
+            height_limit = 4
 
             slice_dim = processor.calculate_slice_dimensions(file_paths)
-
             slices = [o3d.io.read_point_cloud(file_path) for file_path in file_paths]
 
-            for slice_idx, file_path in enumerate(file_paths):
+            """for slice_idx, file_path in enumerate(file_paths):
                 pcd_slice = o3d.io.read_point_cloud(file_path)
-                processor.visualize(np.asarray(pcd_slice.points))
+                processor.visualize(np.asarray(pcd_slice.points))"""
 
             consistent_width = all(np.isclose(slice_dim[i]["width"], width) for i in range(num_slices))
             print(f"Latimea este constanta pe toate feliile: {consistent_width}, latimea initiala este: {width}")
@@ -237,7 +264,8 @@ def main():
     input_director = "files"
     output_director = "slices"
     analyze(input_director, output_director)
-
 #de facut: de stabilit niste praguri, de stabilit daca trebuie sa elimin prima si ultima felie, detectare manuala
+
+
 if __name__ == "__main__":
     main()
