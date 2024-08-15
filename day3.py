@@ -16,7 +16,7 @@ class PointCloudProcessor:
         else:
             o3d.visualization.draw_geometries([self.pcd])
 
-    def filter_outliers(self, nb_neighbors=20, std_ratio=2.0, visualize=False):
+    def filter_outliers(self, nb_neighbors=15, std_ratio=2.0, visualize=False):
         #eliminam punctele care se afla la o distanta prea mare fata de majoritatea punctelor vecine, adica outliers
         #punctele sunt erori de masuratori, nu fac parte din obiect
         #nb_neighbors = numarul de vecini considerati pentru fiecare punct
@@ -99,6 +99,9 @@ class PointCloudProcessor:
         max_val = points_np[:, axis].max()
         total_depth = max_val - min_val
 
+        #offset pentru a ne asigura ca nu se pierd puncte la margini
+        epsilon = 0.1
+
         slice_depth = total_depth / num_slices
         slice_files = []
 
@@ -106,24 +109,27 @@ class PointCloudProcessor:
             lower_bound = min_val + i * slice_depth
             upper_bound = lower_bound + slice_depth
 
-            #filtram punctele care se află în intervalul [lower_bound, upper_bound] pe axa specificată
+            #ultima felie include toate punctele pana la maxim
+            if i == num_slices - 1:
+                upper_bound = max_val + epsilon
+
+            #selectam punctele din feliile curente
             mask = (points_np[:, axis] >= lower_bound) & (points_np[:, axis] <= upper_bound)
             slice_points = points_np[mask]
 
-            #cream un nou nor de puncte pentru felie
             slice_pcd = o3d.geometry.PointCloud()
             slice_pcd.points = o3d.utility.Vector3dVector(slice_points)
 
-            #salveaza felia
-            slice_filename = f"{output_dir}/slice_{i + 1}.pcd"
+            slice_filename = os.path.join(output_dir, f"slice_{i + 1}.pcd")
             o3d.io.write_point_cloud(slice_filename, slice_pcd)
             slice_files.append(slice_filename)
+
+            print(f"Numărul de puncte în felia {i + 1}: {len(slice_points)}")
 
         return slice_files
 
     @staticmethod
     def calculate_slice_dimensions(file_paths):
-        # lista pentru a stoca dimensiunile
         slice_dimensions = []
         for slice_idx, file_path in enumerate(file_paths):
             pcd_slice = o3d.io.read_point_cloud(file_path)
@@ -184,10 +190,8 @@ class PointCloudProcessor:
                     if idx.size > 0:
                         all_colors[idx[0]] = color
 
-        # Setăm culorile pentru norul de puncte original
-        self.pcd.colors = o3d.utility.Vector3dVector(all_colors)
 
-        # Vizualizăm rezultatul final
+        self.pcd.colors = o3d.utility.Vector3dVector(all_colors)
         self.visualize()
 
 
@@ -215,7 +219,7 @@ def analyze(director, output_dir):
             processor.filter_outliers(visualize=True)
             print(f"Numarul de puncte dupa filter_outliers: {len(processor.pcd.points)}")
 
-            processor.downsample_voxel(voxel_size=0.05)
+            processor.downsample_voxel(voxel_size=0.025)
             print(f"Numarul de puncte dupa voxel: {len(processor.pcd.points)}\n")
 
             #processor.visualize()
@@ -264,7 +268,7 @@ def main():
     input_director = "files"
     output_director = "slices"
     analyze(input_director, output_director)
-#de facut: de stabilit niste praguri, de stabilit daca trebuie sa elimin prima si ultima felie, detectare manuala
+#de facut: de stabilit daca trebuie sa elimin prima si ultima felie, detectare manuala
 
 
 if __name__ == "__main__":
