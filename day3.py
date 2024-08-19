@@ -256,7 +256,7 @@ def analyze(director, output_dir):
 
             processor.detect_oversize(slices, width_limit, height_limit)
 
-
+#detectare manuala
 
 def main():
     input_director = "files"
