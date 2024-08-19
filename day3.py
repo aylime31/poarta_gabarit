@@ -92,30 +92,30 @@ class PointCloudProcessor:
         without_rain_pcd = pcd.select_by_index(removing, invert=True)
         return without_rain_pcd
 
-    def slice_point_cloud(self, num_slices, axis, output_dir):
+    def slice_point_cloud_by_points(self, num_slices, axis, output_dir):
         points_np = np.asarray(self.pcd.points, dtype=np.float64)
 
-        min_val = points_np[:, axis].min()
-        max_val = points_np[:, axis].max()
-        total_depth = max_val - min_val
+        #sortam punctele in functie de axa aleasa
+        sorted_indices = np.argsort(points_np[:, axis])
+        sorted_points = points_np[sorted_indices]
 
-        #offset pentru a ne asigura ca nu se pierd puncte la margini
-        epsilon = 0.1
-
-        slice_depth = total_depth / num_slices
+        num_points = len(points_np)
+        points_per_slice = num_points // num_slices
         slice_files = []
 
         for i in range(num_slices):
-            lower_bound = min_val + i * slice_depth
-            upper_bound = lower_bound + slice_depth
 
-            #ultima felie include toate punctele pana la maxim
+            #felia 1 de la 0 la points_per_slice
+            #felia 2 de la points_per_slice la 2*points_per_slice
+            #felia 3 de la 2*points_per_slice la 3*points_per_slice etc
+            start_idx = i*points_per_slice
+            end_idx = (i+1)*points_per_slice
+
+            #ultima felie va lua toate punctele ramase
             if i == num_slices - 1:
-                upper_bound = max_val + epsilon
+                end_idx = num_points
 
-            #selectam punctele din feliile curente
-            mask = (points_np[:, axis] >= lower_bound) & (points_np[:, axis] <= upper_bound)
-            slice_points = points_np[mask]
+            slice_points = sorted_points[start_idx:end_idx]
 
             slice_pcd = o3d.geometry.PointCloud()
             slice_pcd.points = o3d.utility.Vector3dVector(slice_points)
@@ -124,7 +124,7 @@ class PointCloudProcessor:
             o3d.io.write_point_cloud(slice_filename, slice_pcd)
             slice_files.append(slice_filename)
 
-            print(f"Numărul de puncte în felia {i + 1}: {len(slice_points)}")
+            print(f"Numarul de puncte in felia {i + 1}: {len(slice_points)}")
 
         return slice_files
 
@@ -211,20 +211,18 @@ def analyze(director, output_dir):
             processor = PointCloudProcessor(file_path)
 
             print(f"Numarul de puncte initial: {len(processor.pcd.points)}")
-            # eliminam picaturile de ploaie:
+            #eliminam picaturile de ploaie:
             processor.pcd = processor.rain_drop_remove(processor.pcd)
             print(f"Numarul de puncte dupa rain_drop_remove: {len(processor.pcd.points)}")
 
-            # filtram zgomotul:
+            #filtram zgomotul:
             processor.filter_outliers(visualize=True)
             print(f"Numarul de puncte dupa filter_outliers: {len(processor.pcd.points)}")
 
             processor.downsample_voxel(voxel_size=0.025)
             print(f"Numarul de puncte dupa voxel: {len(processor.pcd.points)}\n")
 
-            #processor.visualize()
-
-            #dimensiunile initiale:
+            #calculam dimensiunile inițiale:
             points_np = np.asarray(processor.pcd.points)
             x_min = points_np[:, 0].min()
             x_max = points_np[:, 0].max()
@@ -236,19 +234,14 @@ def analyze(director, output_dir):
             height = z_max - z_min
 
             num_slices = 5
-            # alegem axa Z pentru a felia norul de puncte
-            axis = 2
-            file_paths = processor.slice_point_cloud(num_slices, axis, file_output_dir)
+            axis = 2  #alegem axa Z pentru a felia norul de puncte
+            file_paths = processor.slice_point_cloud_by_points(num_slices, axis, file_output_dir)
 
             width_limit = 2.5
             height_limit = 4
 
             slice_dim = processor.calculate_slice_dimensions(file_paths)
             slices = [o3d.io.read_point_cloud(file_path) for file_path in file_paths]
-
-            """for slice_idx, file_path in enumerate(file_paths):
-                pcd_slice = o3d.io.read_point_cloud(file_path)
-                processor.visualize(np.asarray(pcd_slice.points))"""
 
             consistent_width = all(np.isclose(slice_dim[i]["width"], width) for i in range(num_slices))
             print(f"Latimea este constanta pe toate feliile: {consistent_width}, latimea initiala este: {width}")
@@ -262,6 +255,7 @@ def analyze(director, output_dir):
             print(f"Suma inaltimilor feliilor: {total_height:.2f} (inaltimea originala: {height:.2f})")
 
             processor.detect_oversize(slices, width_limit, height_limit)
+
 
 
 def main():
